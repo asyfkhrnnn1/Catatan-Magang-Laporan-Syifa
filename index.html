@@ -102,6 +102,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
+            table-layout: auto;
         }
 
         th, td {
@@ -109,6 +110,9 @@
             padding: 8px 10px;
             text-align: left;
             font-size: 0.85rem;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         th { background: #fce7f3; font-weight: 600; color: #831843; }
@@ -236,13 +240,24 @@
 
             <div class="form-grid">
                 <div class="form-group">
+                    <label>Tanggal Mulai</label>
+                    <input type="date" id="tgl-mulai-item">
+                </div>
+                <div class="form-group">
                     <label>Waktu Mulai</label>
                     <input type="time" id="mulai-item">
+                </div>
+                <div class="form-group">
+                    <label>Tanggal Selesai (Sesudah)</label>
+                    <input type="date" id="tgl-selesai-item">
                 </div>
                 <div class="form-group">
                     <label>Waktu Selesai (Sesudah)</label>
                     <input type="time" id="selesai-item">
                 </div>
+            </div>
+
+            <div class="form-grid">
                 <div class="form-group">
                     <label>Estimasi Durasi</label>
                     <input type="text" id="estimasi-item" placeholder="Contoh: 4 Jam / 30 Mnt">
@@ -276,15 +291,15 @@
             <thead>
                 <tr>
                     <th style="width: 3%;">No</th>
-                    <th style="width: 12%;">Kategori</th>
-                    <th style="width: 15%;">Nama Mold / Part</th>
-                    <th style="width: 22%;">Detail Pekerjaan / Problem</th>
-                    <th style="width: 9%;">Jam Kerja</th>
+                    <th style="width: 11%;">Kategori</th>
+                    <th style="width: 14%;">Nama Mold / Part</th>
+                    <th style="width: 20%;">Detail Pekerjaan / Problem</th>
+                    <th style="width: 15%;">Mulai & Selesai</th>
                     <th style="width: 8%;">Estimasi</th>
                     <th style="width: 8%;">Aktual</th>
-                    <th style="width: 9%;">Status</th>
-                    <th style="width: 10%;">Catatan</th>
-                    <th class="no-print" style="width: 8%;">Aksi</th>
+                    <th style="width: 8%;">Status</th>
+                    <th style="width: 9%;">Catatan</th>
+                    <th class="no-print" style="width: 4%;">Aksi</th>
                 </tr>
             </thead>
             <tbody id="tbody-rekap">
@@ -312,15 +327,20 @@
     }
 
     // Set tanggal default hari ini
-    document.getElementById('tgl-laporan').valueAsDate = new Date();
-    
+    const todayStr = new Date().toISOString().split('T')[0];
+    document.getElementById('tgl-laporan').value = todayStr;
+    document.getElementById('tgl-mulai-item').value = todayStr;
+    document.getElementById('tgl-selesai-item').value = todayStr;
+
     // AMBIL DATA DARI LOCALSTORAGE
     let listData = JSON.parse(localStorage.getItem('mold_listData')) || [
         { 
             kat: 'Persiapan', 
             mold: 'Ambalan Pulley 2T 1A', 
             detail: 'Persiapan mold', 
+            tglMulai: todayStr,
             mulai: '08:00', 
+            tglSelesai: todayStr,
             selesai: '09:30', 
             estimasi: '1.5 Jam', 
             status: 'Selesai',
@@ -345,23 +365,41 @@
         localStorage.setItem('mold_nama', document.getElementById('nama-spv').value);
     }
 
-    function hitungAktual(mulai, selesai) {
+    function formatTglShort(tglStr) {
+        if (!tglStr) return '';
+        const parts = tglStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}`;
+        }
+        return tglStr;
+    }
+
+    function hitungAktual(tgl1, mulai, tgl2, selesai) {
         if (!mulai || !selesai) return '-';
-        const [h1, m1] = mulai.split(':').map(Number);
-        const [h2, m2] = selesai.split(':').map(Number);
         
-        let d1 = new Date(2000, 0, 1, h1, m1);
-        let d2 = new Date(2000, 0, 1, h2, m2);
-        
-        if (d2 < d1) {
+        const d1Str = tgl1 || todayStr;
+        const d2Str = tgl2 || d1Str;
+
+        const [y1, m1, day1] = d1Str.split('-').map(Number);
+        const [h1, min1] = mulai.split(':').map(Number);
+
+        const [y2, m2, day2] = d2Str.split('-').map(Number);
+        const [h2, min2] = selesai.split(':').map(Number);
+
+        let d1 = new Date(y1, m1 - 1, day1, h1, min1);
+        let d2 = new Date(y2, m2 - 1, day2, h2, min2);
+
+        if (d2 < d1 && !tgl2) {
             d2.setDate(d2.getDate() + 1);
         }
-        
+
         let diffMs = d2 - d1;
+        if (diffMs < 0) return '-';
+
         let diffMins = Math.floor(diffMs / 1000 / 60);
         let jam = Math.floor(diffMins / 60);
         let menit = diffMins % 60;
-        
+
         let hasil = '';
         if (jam > 0) hasil += jam + ' Jam ';
         if (menit > 0) hasil += menit + ' Mnt';
@@ -386,8 +424,21 @@
             if(item.kat === 'Trouble') badgeClass = 'badge-trouble';
             if(item.kat.includes('Besok')) badgeClass = 'badge-besok';
 
-            let waktuAktual = hitungAktual(item.mulai, item.selesai);
-            let jamKerjaText = (item.mulai && item.selesai) ? `${item.mulai} - ${item.selesai}` : '-';
+            let waktuAktual = hitungAktual(item.tglMulai, item.mulai, item.tglSelesai, item.selesai);
+            
+            let strMulai = '';
+            if (item.mulai) {
+                strMulai = (item.tglMulai ? formatTglShort(item.tglMulai) + ' ' : '') + item.mulai;
+            }
+            let strSelesai = '';
+            if (item.selesai) {
+                strSelesai = (item.tglSelesai ? formatTglShort(item.tglSelesai) + ' ' : '') + item.selesai;
+            }
+
+            let jamKerjaText = '-';
+            if (strMulai || strSelesai) {
+                jamKerjaText = `${strMulai || '-'} s/d ${strSelesai || '-'}`;
+            }
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -417,7 +468,9 @@
         const kat = document.getElementById('kat-item').value;
         const mold = document.getElementById('mold-item').value;
         const detail = document.getElementById('detail-item').value;
+        const tglMulai = document.getElementById('tgl-mulai-item').value;
         const mulai = document.getElementById('mulai-item').value;
+        const tglSelesai = document.getElementById('tgl-selesai-item').value;
         const selesai = document.getElementById('selesai-item').value;
         const estimasi = document.getElementById('estimasi-item').value;
         const status = document.getElementById('status-item').value;
@@ -425,10 +478,10 @@
 
         if (editIndex === -1) {
             // Mode Tambah
-            listData.push({ kat, mold, detail, mulai, selesai, estimasi, status, catatan });
+            listData.push({ kat, mold, detail, tglMulai, mulai, tglSelesai, selesai, estimasi, status, catatan });
         } else {
             // Mode Update/Edit
-            listData[editIndex] = { kat, mold, detail, mulai, selesai, estimasi, status, catatan };
+            listData[editIndex] = { kat, mold, detail, tglMulai, mulai, tglSelesai, selesai, estimasi, status, catatan };
             editIndex = -1;
             document.getElementById('btn-submit').innerText = '+ Tambah ke Daftar';
             document.getElementById('btn-batal').style.display = 'none';
@@ -446,7 +499,9 @@
         document.getElementById('kat-item').value = item.kat;
         document.getElementById('mold-item').value = item.mold;
         document.getElementById('detail-item').value = item.detail;
+        document.getElementById('tgl-mulai-item').value = item.tglMulai || todayStr;
         document.getElementById('mulai-item').value = item.mulai || '';
+        document.getElementById('tgl-selesai-item').value = item.tglSelesai || todayStr;
         document.getElementById('selesai-item').value = item.selesai || '';
         document.getElementById('estimasi-item').value = item.estimasi || '';
         document.getElementById('status-item').value = item.status;
@@ -470,7 +525,9 @@
     function resetFormItem() {
         document.getElementById('mold-item').value = '';
         document.getElementById('detail-item').value = '';
+        document.getElementById('tgl-mulai-item').value = todayStr;
         document.getElementById('mulai-item').value = '';
+        document.getElementById('tgl-selesai-item').value = todayStr;
         document.getElementById('selesai-item').value = '';
         document.getElementById('estimasi-item').value = '';
         document.getElementById('status-item').value = '';
