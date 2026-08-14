@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Harian Maintenance Mold</title>
+    <style>
+        :root {
+            --primary: #f472b6;
+            --secondary: #f43f5e;
+            --bg: #fdf2f8;
+            --card-bg: #ffffff;
+            --text: #831843;
+            --border: #fbcfe8;
+            --warning: #eab308;
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1150px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 { font-size: 1.5rem; }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #9d174d;
+        }
+
+        input, select, textarea {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-print { background: var(--secondary); color: white; font-size: 1rem; padding: 10px 20px; }
+        .btn-danger { background: #fee2e2; color: var(--danger); padding: 4px 8px; font-size: 0.8rem; }
+        .btn-edit { background: #e0f2fe; color: #0369a1; padding: 4px 8px; font-size: 0.8rem; margin-right: 4px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        th { background: #fce7f3; font-weight: 600; color: #831843; }
+
+        .badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .badge-persiapan { background: #fbcfe8; color: #831843; }
+        .badge-preventive { background: #dcfce7; color: #166534; }
+        .badge-trouble { background: #fee2e2; color: #991b1b; }
+        .badge-besok { background: #fef3c7; color: #92400e; }
+
+        .briefing-box {
+            background-color: #fdf2f8;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            white-space: pre-line;
+        }
+
+        /* FORMAT CETAK PDF / PRINT */
+        @media print {
+            body { background: white; padding: 0; color: black; }
+            .no-print { display: none !important; }
+            .card { box-shadow: none; border: none; padding: 0; margin-bottom: 15px; }
+            .container { max-width: 100%; }
+            .print-header {
+                display: block !important;
+                border-bottom: 2px solid #000;
+                padding-bottom: 10px;
+                margin-bottom: 15px;
+            }
+            table { border: 1px solid #000; width: 100%; }
+            th, td { border: 1px solid #000 !important; padding: 6px 8px; }
+            th { background: #eee !important; color: black; }
+        }
+
+        .print-header { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header Aplikasi -->
+    <header class="no-print">
+        <div>
+            <h1 id="sapaan-pagi">Dashboard Maintenance Mold</h1>
+            <p style="font-size: 0.85rem; opacity: 0.9;">Input & Cetak Laporan Harian Maintenance</p>
+        </div>
+        <button class="btn-print" onclick="window.print()">🖨️ Cetak PDF</button>
+    </header>
+
+    <!-- Header Dokumen Hasil Cetak (Akan muncul saat di-PDF/Print) -->
+    <div class="print-header">
+        <h2 style="text-align: center; margin-bottom: 5px;">LAPORAN HARIAN MAINTENANCE MOLD</h2>
+        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-top: 10px;">
+            <p><strong>Tanggal:</strong> <span id="print-tgl">-</span></p>
+            <p><strong>Nama:</strong> <span id="print-spv">-</span></p>
+            <p><strong>Shift:</strong> <span id="print-shift">-</span></p>
+        </div>
+    </div>
+
+    <!-- Input Informasi Umum -->
+    <div class="card no-print">
+        <h3>1. Informasi Umum & Briefing Pagi</h3>
+        <div class="form-grid" style="margin-top: 10px;">
+            <div class="form-group">
+                <label>Tanggal Laporan</label>
+                <input type="date" id="tgl-laporan">
+            </div>
+            <div class="form-group">
+                <label>Nama</label>
+                <input type="text" id="nama-spv" value="Syifa">
+            </div>
+            <div class="form-group">
+                <label>Shift Work</label>
+                <select id="shift-work">
+                    <option value="Shift 1">Shift 1</option>
+                    <option value="Shift 2">Shift 2</option>
+                    <option value="Shift 3">Shift 3</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Isi Briefing Pagi</label>
+            <textarea id="input-briefing" rows="3" placeholder="Contoh: Fokus perbaikan mold trouble, pembersihan area kerja, penekanan K3..."></textarea>
+        </div>
+    </div>
+
+    <!-- Briefing Pagi di PDF / Tampilan -->
+    <div class="card">
+        <h3>Poin Briefing Pagi</h3>
+        <div id="display-briefing" class="briefing-box">-</div>
+    </div>
+
+    <!-- Input Form Kegiatan -->
+    <div class="card no-print">
+        <h3 id="form-title">2. Tambah Item Kegiatan / Problem</h3>
+        <form id="form-item" onsubmit="tambahData(event)" style="margin-top: 10px;">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Kategori</label>
+                    <select id="kat-item" required>
+                        <option value="Persiapan">Persiapan</option>
+                        <option value="Preventive">Preventive</option>
+                        <option value="Trouble">Trouble</option>
+                        <option value="Persiapan Besok / Mesin OFF">Persiapan Besok / Mesin OFF</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nama Mold / Part</label>
+                    <input type="text" id="mold-item" placeholder="Contoh: SW FK 2T 2A" required>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Detail Pekerjaan / Trouble</label>
+                    <input type="text" id="detail-item" placeholder="Contoh: Pembuatan baut/baut..." required>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Waktu Mulai</label>
+                    <input type="time" id="mulai-item">
+                </div>
+                <div class="form-group">
+                    <label>Waktu Selesai (Sesudah)</label>
+                    <input type="time" id="selesai-item">
+                </div>
+                <div class="form-group">
+                    <label>Estimasi Durasi</label>
+                    <input type="text" id="estimasi-item" placeholder="Contoh: 4 Jam / 30 Mnt">
+                </div>
+                <div class="form-group">
+                    <label>Status / Progres</label>
+                    <input type="text" id="status-item" placeholder="Contoh: Selesai / On Progress" required>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Catatan / Keterangan Tambahan</label>
+                <input type="text" id="catatan-item" placeholder="Contoh: Perlu order sparepart baru / Butuh pendinginan extra">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" id="btn-submit" class="btn-primary" style="margin-top: 5px;">+ Tambah ke Daftar</button>
+                <button type="button" id="btn-batal" onclick="batalEdit()" style="margin-top: 5px; background: #e2e8f0; color: #475569; display: none;">Batal Edit</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Rekap Laporan untuk Cetak -->
+    <div class="card">
+        <h3 class="no-print">3. Rekap Laporan Hari Ini</h3>
+        
+        <table id="tabel-rekap">
+            <thead>
+                <tr>
+                    <th style="width: 3%;">No</th>
+                    <th style="width: 12%;">Kategori</th>
+                    <th style="width: 15%;">Nama Mold / Part</th>
+                    <th style="width: 22%;">Detail Pekerjaan / Problem</th>
+                    <th style="width: 9%;">Jam Kerja</th>
+                    <th style="width: 8%;">Estimasi</th>
+                    <th style="width: 8%;">Aktual</th>
+                    <th style="width: 9%;">Status</th>
+                    <th style="width: 10%;">Catatan</th>
+                    <th class="no-print" style="width: 8%;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-rekap">
+                <!-- Data akan muncul di sini secara dinamis -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let editIndex = -1;
+
+    // Set sapaan otomatis berdasarkan waktu
+    function setSapaan() {
+        const jam = new Date().getHours();
+        let sapaan = "Good morning Syifa, semangat magangnya! ✨";
+        if (jam >= 12 && jam < 15) {
+            sapaan = "Good afternoon Syifa, semangat magangnya! ✨";
+        } else if (jam >= 15 && jam < 18) {
+            sapaan = "Good afternoon Syifa, semangat magangnya! ✨";
+        } else if (jam >= 18 || jam < 4) {
+            sapaan = "Halo Syifa, semangat magangnya! ✨";
+        }
+        document.getElementById('sapaan-pagi').innerText = sapaan;
+    }
+
+    // Set tanggal default hari ini
+    document.getElementById('tgl-laporan').valueAsDate = new Date();
+    
+    let listData = [
+        { 
+            kat: 'Persiapan', 
+            mold: 'Ambalan Pulley 2T 1A', 
+            detail: 'Persiapan mold', 
+            mulai: '08:00', 
+            selesai: '09:30', 
+            estimasi: '1.5 Jam', 
+            status: 'Selesai',
+            catatan: 'Siap naik mesin'
+        },
+        { 
+            kat: 'Preventive', 
+            mold: 'SW FK 2T 2A', 
+            detail: 'Pembersihan & pemeliharaan berkala', 
+            mulai: '09:30', 
+            selesai: '11:00', 
+            estimasi: '1.5 Jam', 
+            status: 'Selesai',
+            catatan: 'Kondisi runner bersih'
+        },
+        { 
+            kat: 'Trouble', 
+            mold: 'Ambalan LM6', 
+            detail: 'Pengelasan insert', 
+            mulai: '11:00', 
+            selesai: '14:30', 
+            estimasi: '4 Jam', 
+            status: 'Selesai',
+            catatan: 'Insert sudah dilas ulang'
+        }
+    ];
+
+    function hitungAktual(mulai, selesai) {
+        if (!mulai || !selesai) return '-';
+        const [h1, m1] = mulai.split(':').map(Number);
+        const [h2, m2] = selesai.split(':').map(Number);
+        
+        let d1 = new Date(2000, 0, 1, h1, m1);
+        let d2 = new Date(2000, 0, 1, h2, m2);
+        
+        if (d2 < d1) {
+            d2.setDate(d2.getDate() + 1);
+        }
+        
+        let diffMs = d2 - d1;
+        let diffMins = Math.floor(diffMs / 1000 / 60);
+        let jam = Math.floor(diffMins / 60);
+        let menit = diffMins % 60;
+        
+        let hasil = '';
+        if (jam > 0) hasil += jam + ' Jam ';
+        if (menit > 0) hasil += menit + ' Mnt';
+        return hasil.trim() || '0 Mnt';
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tbody-rekap');
+        tbody.innerHTML = '';
+
+        // Update header cetak & briefing
+        document.getElementById('print-tgl').innerText = document.getElementById('tgl-laporan').value || '-';
+        document.getElementById('print-spv').innerText = document.getElementById('nama-spv').value || '-';
+        document.getElementById('print-shift').innerText = document.getElementById('shift-work').value || '-';
+        
+        const textBriefing = document.getElementById('input-briefing').value.trim();
+        document.getElementById('display-briefing').innerText = textBriefing || 'Belum ada catatan briefing pagi.';
+
+        listData.forEach((item, index) => {
+            let badgeClass = 'badge-persiapan';
+            if(item.kat === 'Preventive') badgeClass = 'badge-preventive';
+            if(item.kat === 'Trouble') badgeClass = 'badge-trouble';
+            if(item.kat.includes('Besok')) badgeClass = 'badge-besok';
+
+            let waktuAktual = hitungAktual(item.mulai, item.selesai);
+            let jamKerjaText = (item.mulai && item.selesai) ? `${item.mulai} - ${item.selesai}` : '-';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td><span class="badge ${badgeClass}">${item.kat}</span></td>
+                <td><strong>${item.mold}</strong></td>
+                <td>${item.detail}</td>
+                <td>${jamKerjaText}</td>
+                <td>${item.estimasi || '-'}</td>
+                <td><strong>${waktuAktual}</strong></td>
+                <td>${item.status}</td>
+                <td>${item.catatan || '-'}</td>
+                <td class="no-print">
+                    <button class="btn-edit" onclick="editData(${index})">Edit</button>
+                    <button class="btn-danger" onclick="hapusData(${index})">Hapus</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function tambahData(e) {
+        e.preventDefault();
+        const kat = document.getElementById('kat-item').value;
+        const mold = document.getElementById('mold-item').value;
+        const detail = document.getElementById('detail-item').value;
+        const mulai = document.getElementById('mulai-item').value;
+        const selesai = document.getElementById('selesai-item').value;
+        const estimasi = document.getElementById('estimasi-item').value;
+        const status = document.getElementById('status-item').value;
+        const catatan = document.getElementById('catatan-item').value;
+
+        if (editIndex === -1) {
+            // Mode Tambah
+            listData.push({ kat, mold, detail, mulai, selesai, estimasi, status, catatan });
+        } else {
+            // Mode Update/Edit
+            listData[editIndex] = { kat, mold, detail, mulai, selesai, estimasi, status, catatan };
+            editIndex = -1;
+            document.getElementById('btn-submit').innerText = '+ Tambah ke Daftar';
+            document.getElementById('btn-batal').style.display = 'none';
+            document.getElementById('form-title').innerText = '2. Tambah Item Kegiatan / Problem';
+        }
+
+        renderTable();
+        resetFormItem();
+    }
+
+    function editData(index) {
+        editIndex = index;
+        const item = listData[index];
+
+        document.getElementById('kat-item').value = item.kat;
+        document.getElementById('mold-item').value = item.mold;
+        document.getElementById('detail-item').value = item.detail;
+        document.getElementById('mulai-item').value = item.mulai || '';
+        document.getElementById('selesai-item').value = item.selesai || '';
+        document.getElementById('estimasi-item').value = item.estimasi || '';
+        document.getElementById('status-item').value = item.status;
+        document.getElementById('catatan-item').value = item.catatan || '';
+
+        // Ubah tampilan form ke mode Edit
+        document.getElementById('btn-submit').innerText = '💾 Simpan Perubahan';
+        document.getElementById('btn-batal').style.display = 'inline-block';
+        document.getElementById('form-title').innerText = `2. Edit Item No. ${index + 1}`;
+
+        // Scroll halus ke area form
+        document.getElementById('form-item').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function batalEdit() {
+        editIndex = -1;
+        resetFormItem();
+        document.getElementById('btn-submit').innerText = '+ Tambah ke Daftar';
+        document.getElementById('btn-batal').style.display = 'none';
+        document.getElementById('form-title').innerText = '2. Tambah Item Kegiatan / Problem';
+    }
+
+    function resetFormItem() {
+        document.getElementById('mold-item').value = '';
+        document.getElementById('detail-item').value = '';
+        document.getElementById('mulai-item').value = '';
+        document.getElementById('selesai-item').value = '';
+        document.getElementById('estimasi-item').value = '';
+        document.getElementById('status-item').value = '';
+        document.getElementById('catatan-item').value = '';
+    }
+
+    function hapusData(index) {
+        listData.splice(index, 1);
+        if (editIndex === index) {
+            batalEdit();
+        }
+        renderTable();
+    }
+
+    // Event listener update header & briefing otomatis
+    document.getElementById('tgl-laporan').addEventListener('change', renderTable);
+    document.getElementById('nama-spv').addEventListener('input', renderTable);
+    document.getElementById('shift-work').addEventListener('change', renderTable);
+    document.getElementById('input-briefing').addEventListener('input', renderTable);
+
+    // Initial render & sapaan
+    setSapaan();
+    renderTable();
+</script>
+
+</body>
+</html>
