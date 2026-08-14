@@ -96,6 +96,7 @@
         .btn-print { background: var(--secondary); color: white; font-size: 1rem; padding: 10px 20px; }
         .btn-danger { background: #fee2e2; color: var(--danger); padding: 4px 8px; font-size: 0.8rem; }
         .btn-edit { background: #e0f2fe; color: #0369a1; padding: 4px 8px; font-size: 0.8rem; margin-right: 4px; }
+        .btn-reset { background: #fef2f2; color: var(--danger); border: 1px solid #fca5a5; padding: 6px 12px; font-size: 0.85rem; }
 
         table {
             width: 100%;
@@ -266,7 +267,10 @@
 
     <!-- Rekap Laporan untuk Cetak -->
     <div class="card">
-        <h3 class="no-print">3. Rekap Laporan Hari Ini</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center;" class="no-print">
+            <h3>3. Rekap Laporan Hari Ini</h3>
+            <button class="btn-reset" onclick="resetSemuaData()">🗑️ Hapus Semua Rekap</button>
+        </div>
         
         <table id="tabel-rekap">
             <thead>
@@ -310,7 +314,8 @@
     // Set tanggal default hari ini
     document.getElementById('tgl-laporan').valueAsDate = new Date();
     
-    let listData = [
+    // AMBIL DATA DARI LOCALSTORAGE
+    let listData = JSON.parse(localStorage.getItem('mold_listData')) || [
         { 
             kat: 'Persiapan', 
             mold: 'Ambalan Pulley 2T 1A', 
@@ -320,28 +325,25 @@
             estimasi: '1.5 Jam', 
             status: 'Selesai',
             catatan: 'Siap naik mesin'
-        },
-        { 
-            kat: 'Preventive', 
-            mold: 'SW FK 2T 2A', 
-            detail: 'Pembersihan & pemeliharaan berkala', 
-            mulai: '09:30', 
-            selesai: '11:00', 
-            estimasi: '1.5 Jam', 
-            status: 'Selesai',
-            catatan: 'Kondisi runner bersih'
-        },
-        { 
-            kat: 'Trouble', 
-            mold: 'Ambalan LM6', 
-            detail: 'Pengelasan insert', 
-            mulai: '11:00', 
-            selesai: '14:30', 
-            estimasi: '4 Jam', 
-            status: 'Selesai',
-            catatan: 'Insert sudah dilas ulang'
         }
     ];
+
+    // Ambil isi briefing dari storage jika ada
+    const savedBriefing = localStorage.getItem('mold_briefing');
+    if (savedBriefing !== null) {
+        document.getElementById('input-briefing').value = savedBriefing;
+    }
+
+    const savedNama = localStorage.getItem('mold_nama');
+    if (savedNama !== null) {
+        document.getElementById('nama-spv').value = savedNama;
+    }
+
+    function simpanKeStorage() {
+        localStorage.setItem('mold_listData', JSON.stringify(listData));
+        localStorage.setItem('mold_briefing', document.getElementById('input-briefing').value);
+        localStorage.setItem('mold_nama', document.getElementById('nama-spv').value);
+    }
 
     function hitungAktual(mulai, selesai) {
         if (!mulai || !selesai) return '-';
@@ -405,6 +407,9 @@
             `;
             tbody.appendChild(tr);
         });
+
+        // Setiap kali render, otomatis simpan perubahan
+        simpanKeStorage();
     }
 
     function tambahData(e) {
@@ -447,12 +452,10 @@
         document.getElementById('status-item').value = item.status;
         document.getElementById('catatan-item').value = item.catatan || '';
 
-        // Ubah tampilan form ke mode Edit
         document.getElementById('btn-submit').innerText = '💾 Simpan Perubahan';
         document.getElementById('btn-batal').style.display = 'inline-block';
         document.getElementById('form-title').innerText = `2. Edit Item No. ${index + 1}`;
 
-        // Scroll halus ke area form
         document.getElementById('form-item').scrollIntoView({ behavior: 'smooth' });
     }
 
@@ -480,6 +483,14 @@
             batalEdit();
         }
         renderTable();
+    }
+
+    function resetSemuaData() {
+        if (confirm('Yakin ingin menghapus semua daftar rekap hari ini?')) {
+            listData = [];
+            document.getElementById('input-briefing').value = '';
+            renderTable();
+        }
     }
 
     // Event listener update header & briefing otomatis
